@@ -16,4 +16,4 @@ Join the [#Wellington]() channel on [Slack](http://www.hal.org.nz/slack)
 ## Organizers
 
 * [@iokiwi](https://twitter.com/iokiwi) - Simon Merrick
-* Chelsea Finnie
+* [@pengu](https://twitter.com/pengu_frost) - Chelsea Finnie
