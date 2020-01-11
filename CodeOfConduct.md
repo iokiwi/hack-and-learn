@@ -48,12 +48,12 @@ Hack and Learn will not be held liable for your actions outside of the scope spe
 ## Enforcement
 
 * Understand that speech and actions have consequences, and unacceptable behavior will not be tolerated
-* If you are the subject of, or witness to any violations of this Code of Conduct, please contact one or more of the [Hack and Learn admins](https://Hack and Learn.slack.com/account/team)
+* If you are the subject of, or witness to any violations of this Code of Conduct, please contact one or more of the [Hack and Learn admins](https://hackandlearn.slack.com/account/team)
 * If violations occur, organizers will take any action they deem appropriate for the infraction, up to and including expulsion
 
 ## Glossary of Terms
 
-### Scope
+### Scope 
 An explicitly defined set of physical or virtual resources you are authorized to target during the engagement. Scope may include IP addresses, hostnames, urls, SSID's etc.
 
 ### Abuse
