@@ -2,13 +2,12 @@
 
  * [Setup](#setup)
  * [Troubleshooting](#troubleshooting)
- * [Reconnaissance](#Reconnaissance)
-   * [Flag #1](#flag-1)
- * [Privilege Escalation](#privilege-escalation)
-   * [Flag #2](#flag-2)
-* [Privilege Escalation](#privilege-escalation)
-   * [Flag #3](#flag-3)
-
+ * [The Challenge](#the-challenge)
+   * [Reconnaissance + Flag #1](#reconnaissance-and-flag-1)
+   * [Privilege Escalation](#privilege-escalation)
+     * [Flag #2](#flag-2)
+   * [Privilege Escalation](#privilege-escalation)
+     * [Flag #3](#flag-3)
 
 |||
 |---|---|
@@ -16,10 +15,11 @@
 |Download|https://download.vulnhub.com/mrrobot/mrRobot.ova|
 |Torrent|https://download.vulnhub.com/mrrobot/mrRobot.ova.torrent|
 
-
 ## Setup
 
- * [Enable network interface for kali](../instructions/kali-enable-eth0.md)
+ 1. [Import Vulnerable VM](../instructions/import-vuln-vm.md)
+ 2. [Setup nat network](../instructions/setup-nat-network.md)
+ 3. [Enable network interface for kali](../instructions/kali-enable-eth0.md)
 
 ## Troubleshooting
 
@@ -33,9 +33,9 @@ vm's are using the same nat network.
 If you are using a fresh VM make sure to [enable network interface for kali](../instructions/kali-enable-eth0.md)
 
 
-# Flag #1
+# The Challenge
 
-## Reconnaissance
+## Reconnaissance and Flag 1
 
 In the previous section we setup a new ethernet and discovered our own IP address on our NAT Network.
 
