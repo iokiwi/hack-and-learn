@@ -30,8 +30,17 @@ https://www.offensive-security.com/kali-linux-vm-vmware-virtualbox-image-downloa
 7. If you are presented with a pop up like this Click **Capture**.<br>![10](img/kali-vbox-setup/10.png)
 
 8. Login to the virtual machine<br>
+
+For kali 2019.4
+
 **Username:** `root`<br>
 **Password:** `toor`<br>
+
+for kali 2020.1
+
+**Username:** `kali`<br>
+**Password:** `kali`<br>
+
 ![11](img/kali-vbox-setup/11.png)
 
 9. [Setup nat networking](setup-nat-network.md) and set the VM to use the Nat Network.
