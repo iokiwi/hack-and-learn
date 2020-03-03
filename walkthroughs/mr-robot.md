@@ -12,7 +12,7 @@
 |||
 |---|---|
 |Info|https://www.vulnhub.com/entry/mr-robot-1,151/||
-|Download|https://download.vulnhub.com/mrrobot/mrRobot.ova| Not working? use [download link on this page](https://www.vulnhub.com/entry/mr-robot-1,151/)|
+|Download| https://download.vulnhub.com/mrrobot/mrRobot.ova | Not working? use download link  [on this page](https://www.vulnhub.com/entry/mr-robot-1,151/)|
 |Torrent|https://download.vulnhub.com/mrrobot/mrRobot.ova.torrent||
 
 ## Setup
