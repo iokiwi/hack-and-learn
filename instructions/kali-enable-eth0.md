@@ -47,7 +47,7 @@ bound to 10.0.2.15 -- renewal in 506 seconds.
 
 So our IP address should be the IP address shown on the bottom line E.g. `10.0.2.15`
 
-We can confirm by using `ipconfig` to check the IP address assigned to `eth0`
+We can confirm by using `ifconfig` to check the IP address assigned to `eth0`
 
 ```
 root@kali:~# ifconfig eth0
