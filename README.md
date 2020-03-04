@@ -5,13 +5,15 @@ you are interested in our meetup group and improving your security skills.
 
 Please read the [Community Code Of Conduct](CodeOfConduct.md)
 
-Join the [#hal-wellington] channel on [Slack](http://www.hal.org.nz/slack)
+Join the [#hal-wellington]() channel on [Slack](http://www.hal.org.nz/slack)
 
 ## Links
 
  * Join Slack - http://www.hal.org.nz/slack
  * Meetup - https://www.meetup.com/Wellington-Hack-And-Learn-Etc-WHALE/
  * Website - http://www.hal.org.nz/
+ * Walthroughs - [./walkthroughs](walkthroughs/README.md)
+ * Help Docs - [./instructions](instructions/README.md)
 
 ## Organizers
 
