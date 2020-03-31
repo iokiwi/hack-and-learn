@@ -59,6 +59,10 @@ Find all files which have the [setuit bit](https://www.computerhope.com/jargon/s
 ```bash
 find / -perm -4000
 ```
+or
+```bash
+find / -perm -u=s -type f 2>/dev/null
+```
 
 **Example**
 
